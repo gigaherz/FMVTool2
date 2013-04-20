@@ -36,7 +36,7 @@ const u8 StartCode[] = {
 	0xBA,		// /
 	0x44,		// \  => MPEG2 Type (mpeg1 uses 0x20)
 	0x00,		//  |
-	0x04,		//  | Not Sure, but all PSS and VOB files i//ve seen have them
+	0x04,		//  | Not Sure, but all PSS and VOB files i've seen have them
 	0x00,		// /
 };
 const u8 EndCode[] = {
@@ -82,16 +82,20 @@ const wchar_t* GetDiskTypeName(int TT)
 
 wxString FormatSize(int bytes)
 {
+	const float BytesInK = 1024.0f;
+	const float BytesInM = 1024.0f*1024.0f;
+	const float BytesInG = 1024.0f*1024.0f*1024.0f;
+	
 	if(bytes < 1000)
 		return wxString::Format(L"%d Bytes", bytes);
 
 	if(bytes < 1024*1000)
-		return wxString::Format(L"%1.2f KBytes", bytes/1024.0f);
+		return wxString::Format(L"%1.2f KBytes", bytes/BytesInK);
 
 	if(bytes < 1024*1024*1000)
-		return wxString::Format(L"%1.2f MBytes", bytes/(1024.0f*1024.0f));
+		return wxString::Format(L"%1.2f MBytes", bytes/BytesInM);
 
-	return wxString::Format(L"%1.2f GBytes", bytes/(1024.0f*1024.0f*1024.0f));
+	return wxString::Format(L"%1.2f GBytes", bytes/BytesInG);
 }
 
 Process::Process(MainWindow* parent, int mode, int first, int last,
@@ -168,6 +172,9 @@ void Process::Process1()
 	int prevSector = 0;
 	int streamLength = 0;
 
+	
+	StreamItem t={sector,0,0};
+
 	while ((sector < LastSector) & Processing)
 	{
 		int Tr = CDVDreadTrack(sector, CDVD_MODE_2048);
@@ -183,6 +190,7 @@ void Process::Process1()
 						state = 1;
 						offset = i;
 						startOffset = i;
+						t.sector = sector;
 					}
 					break;
 				case 1:
@@ -257,7 +265,8 @@ void Process::Process1()
 						streamLength = streamLength + 7;
 						wxString size = FormatSize(streamLength);
 						parentWindow->PrintToLog(L"Stream End found in sector %d, at offset %d. Stream Length: %s.\n",sector,offset,size.c_str());
-						StreamItem t={sector,startOffset,streamLength};
+						t.offset = startOffset;
+						t.length = streamLength;
 						ListItems.push_back(t);
 					}
 					else
